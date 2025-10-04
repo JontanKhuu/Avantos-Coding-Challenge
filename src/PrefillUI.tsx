@@ -42,6 +42,7 @@ interface NodeInfoProps {
     globalData: Record<string, any>;
 }
 
+// Link nodes to their associated forms for prefill functionality
 const processGraphData = (data: GraphData): ProcessedNode[] => {
   const formMap = new Map(data.forms.map(form => [form.id, form]));
   return data.nodes.map(node => ({
@@ -50,6 +51,7 @@ const processGraphData = (data: GraphData): ProcessedNode[] => {
   }));
 };
 
+// Find all predecessor nodes using breadth-first search
 const findPredecessorNodeIds = (targetNodeId: string, data: GraphData): string[] => {
     if (!data.edges) return [];
     
@@ -72,6 +74,7 @@ const findPredecessorNodeIds = (targetNodeId: string, data: GraphData): string[]
     return Array.from(predecessors);
 };
 
+// Traverse upstream chain to find data for a specific field
 const traverseUpstreamForData = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): any => {
     // Find direct upstream nodes (immediate predecessors)
     const upstreamEdges = graphData.edges.filter(edge => edge.target === currentNodeId);
@@ -96,6 +99,7 @@ const traverseUpstreamForData = (currentNodeId: string, fieldKey: string, graphD
     return null; // No data found in entire upstream chain
 };
 
+// Find the node ID that contains data for a specific field
 const findUpstreamSourceNode = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null => {
     // Find direct upstream nodes (immediate predecessors)
     const upstreamEdges = graphData.edges.filter(edge => edge.target === currentNodeId);
@@ -120,6 +124,7 @@ const findUpstreamSourceNode = (currentNodeId: string, fieldKey: string, graphDa
     return null; // No data found in entire upstream chain
 };
 
+// Get the name of the node that actually contains data for a field
 const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null => {
     const sourceNodeId = findUpstreamSourceNode(currentNodeId, fieldKey, graphData, processedNodes);
     if (sourceNodeId) {
@@ -129,6 +134,7 @@ const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graph
     return null;
 };
 
+// Get the name of the node that a field is explicitly mapped to
 const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: ProcessedNode[]): string | null => {
     if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceNodeId) {
         const sourceNode = processedNodes.find(n => n.id === mapping.sourceNodeId);
@@ -138,11 +144,13 @@ const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: Proce
 };
 
 const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeField, globalData }: NodeInfoProps) => {
+    // Component state for prefill functionality
     const [prefillMappings, setPrefillMappings] = useState<Record<string, Record<string, PrefillMapping>>>({});
     const [fieldToMap, setFieldToMap] = useState<string | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
     const [autoPrefillEnabled, setAutoPrefillEnabled] = useState<Record<string, boolean>>({});
     
+    // Process graph data and find selected node
     const processedNodes: ProcessedNode[] = useMemo(() => {
         if (!graphData) return [];
         return processGraphData(graphData);
@@ -150,7 +158,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
     
     const selectedNode = processedNodes.find(n => n.id === selectedNodeId);
 
-    // Auto-prefill by traversing upstream chain when form is clicked
+    // Auto-prefill: populate fields from upstream data when enabled
     useEffect(() => {
         if (!graphData || !selectedNodeId || !selectedNode) return;
 
@@ -201,7 +209,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         });
     }, [graphData, selectedNodeId, selectedNode, prefillMappings, globalData, onUpdateNodeField, autoPrefillEnabled, processedNodes]);
 
-    // Check upstream sources and clear fields when sources are invalid
+    // Validate upstream sources and clear fields when data becomes unavailable
     useEffect(() => {
         if (!graphData || !selectedNodeId || !selectedNode) return;
 
@@ -227,6 +235,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         });
     }, [graphData, selectedNodeId, selectedNode, prefillMappings, processedNodes, onUpdateNodeField]);
 
+    // Calculate available data sources for prefill mapping
     const availableSources = useMemo(() => {
         if (!graphData || !selectedNodeId) return {};
 

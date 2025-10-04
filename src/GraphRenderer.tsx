@@ -1,16 +1,19 @@
-import {useEffect, useState, useCallback} from "react"
+import {useEffect, useState} from "react"
 import {ReactFlow, Node, Edge,} from '@xyflow/react'; 
 import '@xyflow/react/dist/style.css'
 import "./css/Graphrenderer.css"
 
+// API endpoint for fetching graph data
 const API_URL = "http://localhost:3000/api/v1/123/actions/blueprints/bp_456/bpv_123/graph";
 
+// Fetch graph data from the API
 export const fetchGraphData = async (): Promise<any> => {
     const response = await fetch(API_URL);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return response.json();
 };
 
+// Transform raw graph data into React Flow format
 const processGraphData = (data: any): { nodes: Node[], edges: Edge[] } => {
 	const edgesRaw: Array<{ source: string; target: string }> = data.edges || []
 
@@ -18,7 +21,7 @@ const processGraphData = (data: any): { nodes: Node[], edges: Edge[] } => {
 		id: node.id,
 		data: { 
 			label: node?.data?.name,
-			formFields: node?.data?.formFields || {}, // Store form field values
+			formFields: node?.data?.formFields || {}, // Preserve form field values for prefill
 			componentId: node?.data?.component_id
 		},
 		position: node.position
@@ -40,10 +43,11 @@ interface GraphRenderProps {
 }
 
 const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRenderProps) => {
-    const [nodes, addNode] = useState<Node[]>([])
-    const [edges, addEdge] = useState<Edge[]>([])
+    // React Flow state
+    const [nodes, setNodes] = useState<Node[]>([])
+    const [edges, setEdges] = useState<Edge[]>([])
 
-    // Suppress ResizeObserver errors comprehensively
+    // Comprehensive ResizeObserver error suppression to prevent application crashes
     useEffect(() => {
         const handleResizeObserverError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -60,11 +64,11 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
             }
         };
 
-        // Add multiple event listeners to catch all possible error paths
+        // Listen for ResizeObserver errors through multiple event paths
         window.addEventListener('error', handleResizeObserverError);
         window.addEventListener('unhandledrejection', handleUnhandledRejection);
         
-        // Also suppress console errors for this specific case
+        // Suppress console errors for ResizeObserver issues
         const originalConsoleError = console.error;
         console.error = (...args) => {
             if (args[0] && typeof args[0] === 'string' && 
@@ -81,28 +85,30 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
         };
     }, []);
 
-    const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    // Handle node click events
+    const handleNodeClick = (event: React.MouseEvent, node: Node) => {
         if (onSelectNode) {
             onSelectNode(node.id);
         }
-    }, [onSelectNode]);
+    };
 
+    // Process graph data with debouncing to prevent ResizeObserver issues
     useEffect(() => {
-        // Debounce updates to prevent rapid ResizeObserver triggers
         const timeoutId = setTimeout(() => {
             if (graphData) {
                 const { nodes, edges } = processGraphData(graphData)
-                addNode(nodes)
-                addEdge(edges)
+                setNodes(nodes)
+                setEdges(edges)
                 return
             }
 
+            // Fetch data if not provided
             (async () => {  
                 try {
                     const data = await fetchGraphData()
                     const { nodes, edges } = processGraphData(data);
-                    addNode(nodes)
-                    addEdge(edges)
+                    setNodes(nodes)
+                    setEdges(edges)
                 } catch (error) {
                     console.error("Error fetching DAG: ", error); 
                 }

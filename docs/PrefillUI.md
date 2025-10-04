@@ -2,31 +2,41 @@
 
 ## Overview
 
-`PrefillUI.tsx` is a sophisticated React component that provides a comprehensive interface for configuring form prefill mappings. It allows users to map form fields to data sources from predecessor nodes or global data, creating a visual and intuitive way to set up automatic form population.
+`PrefillUI.tsx` is a sophisticated React component that provides a comprehensive interface for configuring form prefill mappings. It allows users to map form fields to data sources from predecessor nodes or global data, creating a visual and intuitive way to set up automatic form population with intelligent source discovery and mapping management.
 
 ## Key Responsibilities
 
 - **Form Field Mapping**: Maps target form fields to available data sources
-- **Data Source Discovery**: Identifies available data from predecessor nodes
+- **Data Source Discovery**: Identifies available data from predecessor nodes and global data
 - **Mapping Management**: Creates, updates, and removes field mappings
 - **User Interface**: Provides intuitive modal dialogs for configuration
 - **State Persistence**: Maintains mapping state throughout the session
+- **Auto-Prefill**: Automatic field population based on upstream data
+- **Source Display**: Shows accurate source information for mapped fields
 
 ## Core Features
 
-### Mapping System
+### Advanced Mapping System
 The component implements a sophisticated mapping system that allows:
 - **Field-to-Source Mapping**: Links form fields to data sources
 - **Multiple Source Types**: Supports both form fields and global data
 - **Hierarchical Organization**: Groups sources by node or global data
 - **Visual Feedback**: Shows mapped vs unmapped fields clearly
+- **Source Information**: Displays accurate source node names
 
-### Data Source Discovery
+### Intelligent Data Source Discovery
 Automatically discovers available data sources:
-- **Predecessor Analysis**: Finds all upstream nodes
+- **Predecessor Analysis**: Finds all upstream nodes using breadth-first search
 - **Field Extraction**: Extracts available fields from predecessor forms
 - **Global Data**: Includes system-wide data sources
 - **Dynamic Updates**: Refreshes when graph structure changes
+- **Empty Field Handling**: Properly handles empty fields in source nodes
+
+### Auto-Prefill Functionality
+- **Automatic Population**: Automatically fills fields from upstream data
+- **Toggle Control**: User can enable/disable auto-prefill per node
+- **Mapping Creation**: Creates automatic mappings when data is found
+- **Value Synchronization**: Keeps field values in sync with source data
 
 ## Data Structures
 
@@ -48,6 +58,7 @@ interface RawNode {
   data: {
     name: string;
     component_id: string;
+    formFields?: Record<string, any>;
   };
 }
 ```
@@ -59,46 +70,36 @@ interface ProcessedNode extends RawNode {
 }
 ```
 
-#### MappingRule
+#### PrefillMapping
 ```typescript
-interface MappingRule {
-  sourceType: 'FORM_FIELD' | 'GLOBAL_DATA';
-  sourceValue: string;
-  sourceLabel: string;
+interface PrefillMapping {
+  sourceType: 'NODE_FIELD' | 'GLOBAL_DATA';
+  sourceNodeId?: string;
+  sourceFieldKey?: string;
+  globalDataKey?: string;
 }
 ```
 
-#### SourceField
+#### GraphData
 ```typescript
-interface SourceField {
-  groupName: string;
-  fieldKey: string;
-  sourceValue: string;
-  sourceLabel: string;
-  sourceType: 'FORM_FIELD' | 'GLOBAL_DATA';
+interface GraphData {
+  nodes: RawNode[];
+  forms: RawForm[];
+  edges: Array<{ source: string; target: string }>;
 }
 ```
-
-### State Management
-
-#### PrefillMappings
-```typescript
-type PrefillMappings = Record<string, Record<string, MappingRule>>;
-```
-- **Structure**: `{ nodeId: { fieldKey: MappingRule } }`
-- **Purpose**: Stores all field mappings for all nodes
-- **Persistence**: Maintains state throughout session
 
 ## Component Props
 
-### PrefillUIProps
+### NodeInfoProps
 ```typescript
-interface PrefillUIProps {
+interface NodeInfoProps {
   graphData: GraphData | undefined;           // Complete graph data
   selectedNodeId: string | undefined;       // Currently selected node
   isOpen: boolean;                           // Dialog visibility
   onClose: () => void;                       // Close dialog callback
-  updateNodeValue: (nodeId: string, fieldKey: string, value: any) => void;
+  onUpdateNodeField: (nodeId: string, fieldKey: string, value: any) => void;  // Field update callback
+  globalData: Record<string, any>;          // Global data for prefill mapping
 }
 ```
 
@@ -128,49 +129,76 @@ const findPredecessorNodeIds = (targetNodeId: string, data: GraphData): string[]
   4. Returns unique list of all predecessors
 - **Returns**: Array of predecessor node IDs
 
-### Available Sources Calculation
-The component calculates available data sources using a complex useMemo hook:
-
+### traverseUpstreamForData
 ```typescript
-const availableSources: SourceField[] = useMemo(() => {
-  // 1. Find all predecessor nodes
-  // 2. Extract form fields from each predecessor
-  // 3. Add global data sources
-  // 4. Format as SourceField objects
-}, [graphData, selectedNodeId, processedNodes]);
+const traverseUpstreamForData = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): any
 ```
+- **Purpose**: Traverses upstream chain to find data for a specific field
+- **Process**:
+  1. Checks immediate upstream nodes for field data
+  2. Recursively checks further upstream if no data found
+  3. Returns first non-empty value found
+- **Returns**: Field value or null if not found
+
+### findUpstreamSourceNode
+```typescript
+const findUpstreamSourceNode = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null
+```
+- **Purpose**: Finds the node ID that contains data for a specific field
+- **Process**: Similar to traverseUpstreamForData but returns node ID instead of value
+- **Returns**: Source node ID or null if not found
+
+### findActualSourceNodeName
+```typescript
+const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null
+```
+- **Purpose**: Gets the name of the node that actually contains data for a field
+- **Process**: Uses findUpstreamSourceNode and returns the node's name
+- **Returns**: Source node name or null
+
+### findMappedSourceNodeName
+```typescript
+const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: ProcessedNode[]): string | null
+```
+- **Purpose**: Gets the name of the node that a field is explicitly mapped to
+- **Process**: Finds the mapped source node regardless of whether it has data
+- **Returns**: Mapped source node name or null
 
 ## User Interface Components
 
 ### Main Modal
 - **Header**: Shows selected node name and linked form
-- **Field List**: Displays all form fields with mapping status
-- **Summary**: Shows count of available sources
+- **Field List**: Displays all form fields with mapping status and values
+- **Auto-Prefill Toggle**: Allows enabling/disabling automatic field population
 - **Close Button**: Allows user to close the dialog
 
 ### Field Mapping Interface
-- **Field Boxes**: Visual representation of each form field
+- **Field Containers**: Visual representation of each form field
 - **Mapping Status**: Clear indication of mapped vs unmapped fields
-- **Click to Map**: Unmapped fields are clickable to start mapping
-- **Remove Mapping**: Mapped fields show remove button
+- **Field Values**: Shows current field values (read-only)
+- **Map Prefill Button**: Unmapped fields show button to start mapping
+- **Clear Mapping Button**: Mapped fields show button to remove mapping
+- **Source Information**: Shows where mapped fields get their data from
 
 ### Source Selection Modal
-- **Sidebar**: Hierarchical list of available data sources
+- **Grouped Sources**: Hierarchical list of available data sources
 - **Expandable Groups**: Groups sources by node or global data
-- **Detail View**: Shows detailed information about selected source
-- **Action Buttons**: Cancel and Select buttons
+- **Field Details**: Shows field names, values, and types
+- **Empty Field Handling**: Properly displays empty fields as "(empty)"
+- **Action Buttons**: Cancel and selection functionality
 
 ## State Management
 
 ### Internal State
-- **prefillMappings**: Stores all field mappings
+- **prefillMappings**: Stores all field mappings for all nodes
 - **fieldToMap**: Currently selected field for mapping
 - **expandedGroups**: Controls which source groups are expanded
-- **selectedSource**: Currently selected data source
+- **autoPrefillEnabled**: Tracks auto-prefill state per node
 
 ### State Updates
 - **Mapping Creation**: Adds new field mappings
-- **Mapping Removal**: Removes existing mappings
+- **Mapping Removal**: Removes existing mappings and clears field values
+- **Auto-Prefill**: Manages automatic field population
 - **UI State**: Manages modal visibility and selections
 
 ## Event Handlers
@@ -181,19 +209,18 @@ const handleMapField = (fieldId: string) => void
 ```
 - **Purpose**: Initiates the mapping process for a field
 - **Process**:
-  1. Clears any previously selected source
-  2. Sets the field to be mapped
-  3. Opens the source selection modal
+  1. Sets the field to be mapped
+  2. Opens the source selection modal
 
 ### handleSaveMapping
 ```typescript
-const handleSaveMapping = (targetFieldId: string, rule: MappingRule) => void
+const handleSaveMapping = (targetFieldId: string, sourceType: 'NODE_FIELD' | 'GLOBAL_DATA', sourceNodeId?: string, sourceFieldKey?: string, globalDataKey?: string) => void
 ```
 - **Purpose**: Saves a new field mapping
 - **Process**:
   1. Updates the prefillMappings state
   2. Closes the source selection modal
-  3. Refreshes the field display
+  3. Triggers field value update
 
 ### handleClearMapping
 ```typescript
@@ -202,27 +229,20 @@ const handleClearMapping = (targetFieldId: string) => void
 - **Purpose**: Removes an existing field mapping
 - **Process**:
   1. Removes the mapping from state
-  2. Updates the field display
-  3. Maintains other mappings
+  2. Disables auto-prefill for the node
+  3. Clears the field value
+  4. Updates the UI
 
-## Rendering Functions
-
-### renderMappingTable
+### getActualSourceInfo
 ```typescript
-const renderMappingTable = () => JSX.Element
+const getActualSourceInfo = (targetFieldKey: string, mapping: PrefillMapping) => string
 ```
-- **Purpose**: Renders the main field mapping interface
-- **Features**:
-  - Lists all form fields
-  - Shows mapping status (mapped/unmapped)
-  - Provides click handlers for mapping
-  - Displays remove buttons for mapped fields
-
-### Source Selection Interface
-- **Grouped Display**: Organizes sources by node or global data
-- **Expandable Sections**: Allows users to expand/collapse groups
-- **Detail Panel**: Shows detailed information about selected source
-- **Selection State**: Highlights currently selected source
+- **Purpose**: Determines the display text for source information
+- **Process**:
+  1. For global data: returns "Global.fieldName"
+  2. For node fields: tries mapped source name first, then actual source name
+  3. Fallback: returns "Upstream.fieldName"
+- **Returns**: Human-readable source information
 
 ## Data Flow
 
@@ -239,18 +259,31 @@ const renderMappingTable = () => JSX.Element
 2. **Source Display**: Component shows available sources
 3. **Source Selection**: User selects a data source
 4. **Mapping Creation**: Component creates the mapping
-5. **State Update**: Updates internal state and UI
+5. **Value Update**: Field value is updated immediately
+6. **State Update**: Updates internal state and UI
+
+### Auto-Prefill Process
+1. **Toggle Activation**: User enables auto-prefill
+2. **Field Scanning**: Component scans all unmapped fields
+3. **Upstream Search**: Searches upstream for matching field names
+4. **Mapping Creation**: Creates automatic mappings when data found
+5. **Value Population**: Populates fields with found data
 
 ## Styling and CSS
 
 ### CSS Classes
 - **main-modal-overlay**: Main dialog backdrop
 - **main-modal-container**: Main dialog container
-- **field-box**: Individual field display boxes
-- **mapped/unmapped**: Field mapping status styles
-- **modal-overlay**: Source selection modal backdrop
-- **sidebar**: Source list sidebar
-- **group-container**: Source group containers
+- **main-modal-header**: Dialog header section
+- **main-modal-title**: Node name display
+- **main-modal-subtitle**: Form name display
+- **main-modal-close**: Close button
+- **form-fields-container**: Container for form fields
+- **field-container**: Individual field display
+- **field-header**: Field header with label and actions
+- **field-input**: Input field styling
+- **mapping-info**: Source information display
+- **auto-prefill-toggle**: Toggle switch styling
 
 ### Visual Design
 - **Status Indicators**: Clear visual distinction between mapped and unmapped fields
@@ -278,9 +311,9 @@ const renderMappingTable = () => JSX.Element
 - **Edge Cases**: Handles nodes without associated forms
 
 ### User Experience
-- **Loading States**: Shows appropriate feedback during operations
-- **Error Messages**: Displays helpful error messages
-- **Fallback UI**: Provides fallback content when data is missing
+- **Fallback UI**: Provides appropriate content when data is missing
+- **Clear Messaging**: Shows "No form data available" when appropriate
+- **Empty Field Handling**: Properly displays and handles empty fields
 
 ## Integration Points
 
@@ -293,39 +326,35 @@ const renderMappingTable = () => JSX.Element
 - **State Management**: Receives state from parent App component
 - **Callback Functions**: Provides callbacks for state updates
 - **Data Flow**: Participates in the overall application data flow
+- **Global Data**: Receives global data for prefill mapping
 
 ## Usage Examples
 
 ### Basic Usage
 ```typescript
-<PrefillUI
+<NodeInfo
   graphData={graphData}
   selectedNodeId={selectedNodeId}
-  isOpen={isPrefillOpen}
-  onClose={() => setIsPrefillOpen(false)}
-  updateNodeValue={handleUpdateNodeValue}
+  isOpen={isNodeInfoOpen}
+  onClose={() => setIsNodeInfoOpen(false)}
+  onUpdateNodeField={handleUpdateNodeField}
+  globalData={globalData}
 />
 ```
 
-### With Custom Handlers
-```typescript
-<PrefillUI
-  graphData={graphData}
-  selectedNodeId={selectedNodeId}
-  isOpen={isPrefillOpen}
-  onClose={handleClosePrefill}
-  updateNodeValue={customUpdateHandler}
-/>
-```
+## Recent Changes
 
-## Future Enhancements
+### Enhanced Architecture
+- **Improved Source Display**: Better handling of source information display
+- **Enhanced Auto-Prefill**: More robust automatic field population
+- **Better Empty Field Handling**: Properly handles empty fields in source nodes
+- **Cleaner Code**: Removed unused functions and improved maintainability
 
-Potential improvements could include:
-- **Bulk Mapping**: Map multiple fields at once
-- **Mapping Templates**: Save and reuse mapping configurations
-- **Validation Rules**: Add validation for mapping compatibility
-- **Undo/Redo**: Support for undoing mapping changes
-- **Export/Import**: Export mapping configurations
-- **Search Functionality**: Search through available sources
-- **Drag and Drop**: Drag-and-drop interface for mapping
-- **Real-time Preview**: Preview mapped values before saving
+### Current Features
+- Comprehensive form field mapping system
+- Intelligent source discovery and management
+- Auto-prefill functionality with toggle control
+- Accurate source information display
+- Global data integration
+- Real-time field value updates
+- Clean modal interface with expandable source groups

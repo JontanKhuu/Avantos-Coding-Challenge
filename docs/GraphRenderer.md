@@ -2,7 +2,7 @@
 
 ## Overview
 
-`GraphRenderer.tsx` is responsible for visualizing graph data using React Flow. It processes raw graph data, handles node and edge rendering, and provides interactive functionality for node selection.
+`GraphRenderer.tsx` is responsible for visualizing graph data using React Flow. It processes raw graph data, handles node and edge rendering, provides interactive functionality for node selection, and includes comprehensive error handling for ResizeObserver issues.
 
 ## Key Responsibilities
 
@@ -10,20 +10,27 @@
 - **Data Processing**: Transforms raw API data into React Flow format
 - **User Interaction**: Handles node clicks and selection events
 - **API Integration**: Fetches graph data from the backend
+- **Error Handling**: Comprehensive ResizeObserver error suppression
 
 ## Core Features
 
 ### Graph Data Processing
 The component processes raw graph data into a format suitable for React Flow visualization:
 
-1. **Node Processing**: Converts raw nodes to React Flow Node format
-2. **Edge Processing**: Transforms edges to React Flow Edge format
-3. **Simplified Data Structure**: Focuses on essential node and edge information
+1. **Node Processing**: Converts raw nodes to React Flow Node format with labels, form fields, and component IDs
+2. **Edge Processing**: Transforms edges to React Flow Edge format with unique IDs
+3. **Data Preservation**: Maintains form field values and component relationships
 
 ### Interactive Features
 - **Node Selection**: Click handlers for node interaction
 - **Auto-fit View**: Automatically fits the graph to the viewport
 - **Responsive Layout**: Adapts to different screen sizes
+- **Debounced Updates**: Prevents rapid ResizeObserver triggers
+
+### Error Handling
+- **ResizeObserver Suppression**: Comprehensive error handling for ResizeObserver loop issues
+- **Multiple Error Paths**: Handles both error events and unhandled promise rejections
+- **Console Error Filtering**: Suppresses specific ResizeObserver error messages
 
 ## Data Structures
 
@@ -35,12 +42,18 @@ interface RawGraphData {
     data: {
       name: string;
       component_id: string;
+      formFields?: Record<string, any>;
     };
     position: { x: number; y: number };
   }>;
   edges: Array<{
     source: string;
     target: string;
+  }>;
+  forms: Array<{
+    id: string;
+    name: string;
+    field_schema: { properties: Record<string, any> };
   }>;
 }
 ```
@@ -51,6 +64,8 @@ interface ProcessedNode {
   id: string;
   data: {
     label: string;
+    formFields: Record<string, any>;
+    componentId: string;
   };
   position: { x: number; y: number };
 }
@@ -77,8 +92,9 @@ const processGraphData = (data: any): { nodes: Node[], edges: Edge[] }
 - **Returns**: Processed nodes and edges for React Flow
 - **Process**:
   1. Extracts nodes and edges from raw data
-  2. Formats data for React Flow
+  2. Formats data for React Flow with labels and form fields
   3. Assigns unique IDs to edges
+  4. Preserves component relationships
 
 ## Component Props
 
@@ -87,12 +103,14 @@ const processGraphData = (data: any): { nodes: Node[], edges: Edge[] }
 interface GraphRenderProps {
   graphData?: any;                    // Optional pre-loaded graph data
   onSelectNode?: (nodeId: string) => void;  // Node selection callback
+  onUpdateNodeField?: (nodeId: string, fieldKey: string, value: any) => void;  // Field update callback
 }
 ```
 
 ### Props Description
 - **graphData**: If provided, uses this data instead of fetching from API
 - **onSelectNode**: Callback function called when a node is clicked
+- **onUpdateNodeField**: Callback function for form field updates
 
 ## State Management
 
@@ -103,6 +121,7 @@ interface GraphRenderProps {
 ### State Updates
 - **Initial Load**: Fetches and processes data on mount
 - **Data Changes**: Re-processes when graphData prop changes
+- **Debounced Updates**: Uses 100ms debounce to prevent rapid updates
 
 ## React Flow Integration
 
@@ -110,14 +129,29 @@ interface GraphRenderProps {
 - **ID**: Unique identifier from original data
 - **Label**: Node name for display
 - **Position**: X/Y coordinates from original data
-- **Data**: Simplified to contain only essential information
+- **Data**: Includes form fields and component ID for prefill functionality
 
 ### Edge Configuration
-- **ID**: Generated unique identifier
+- **ID**: Generated unique identifier (`e-${source}-${target}-${index}`)
 - **Source/Target**: Original node IDs
 - **Styling**: Uses default React Flow edge styling
 
+### ReactFlow Props
+- **fitView**: Automatically fits graph to viewport
+- **fitViewOptions**: Padding configuration for fit view
+- **Zoom Limits**: Min zoom 0.1, max zoom 2
+- **Interaction**: Disabled dragging, connecting, and multi-selection
+- **Selection**: Enabled single node selection
+
 ## Error Handling
+
+### ResizeObserver Error Suppression
+- **Purpose**: Prevents ResizeObserver loop errors from breaking the application
+- **Implementation**:
+  - Listens for specific ResizeObserver error messages
+  - Suppresses error propagation and prevents default behavior
+  - Handles both error events and unhandled promise rejections
+  - Filters console errors for ResizeObserver issues
 
 ### API Errors
 - Catches fetch errors and logs to console
@@ -132,7 +166,7 @@ interface GraphRenderProps {
 ## Performance Considerations
 
 ### Data Processing
-- **Simplified Processing**: Removed complex prefill calculations
+- **Debounced Updates**: 100ms debounce prevents rapid ResizeObserver triggers
 - **Efficient Algorithms**: Uses optimized data transformation
 - **Memory Management**: Avoids unnecessary data duplication
 
@@ -165,6 +199,7 @@ interface GraphRenderProps {
 <GraphRender 
   graphData={myGraphData}
   onSelectNode={handleNodeSelection}
+  onUpdateNodeField={handleFieldUpdate}
 />
 ```
 
@@ -180,22 +215,16 @@ interface GraphRenderProps {
 
 ## Recent Changes
 
-### Simplified Architecture
-- **Removed Complex Prefill Logic**: Eliminated broken prefill calculation system
-- **Streamlined Data Processing**: Simplified to focus on core visualization
-- **Removed Unused Features**: Eliminated predecessor analysis and form schema processing
-- **Cleaner Code**: Reduced complexity and improved maintainability
+### Enhanced Architecture
+- **Added Form Field Support**: Preserves and processes form field data
+- **Improved Error Handling**: Comprehensive ResizeObserver error suppression
+- **Enhanced Data Processing**: Better handling of component relationships
+- **Debounced Updates**: Prevents performance issues with rapid updates
 
-### What Was Removed
-- `findPredecessorNodeIds` function
-- Complex prefill value calculations
-- Form schema processing
-- Upstream/downstream relationship mapping
-- `prefillFrom` prop and related logic
-
-### What Remains
+### Current Features
 - Core graph visualization functionality
-- Node and edge rendering
+- Node and edge rendering with form field data
 - Interactive node selection
-- API data fetching
-- Error handling
+- API data fetching with error handling
+- Comprehensive ResizeObserver error suppression
+- Debounced updates for better performance

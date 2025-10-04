@@ -2,27 +2,36 @@
 
 ## Overview
 
-`App.tsx` is the main application component that orchestrates the graph visualization system. It manages the global state, handles data fetching, and coordinates communication between the graph renderer and node information components.
+`App.tsx` is the main application component that orchestrates the graph visualization and prefill system. It manages global state, handles data fetching, coordinates communication between components, and provides global data for prefill mapping functionality.
 
-## Responsibilities
+## Key Responsibilities
 
-- **State Management**: Manages graph data, selected node, and UI state
-- **Data Fetching**: Handles API calls to fetch graph data
-- **Component Coordination**: Facilitates communication between GraphRenderer and NodeInfo
-- **User Interaction**: Handles node selection and information display
+- **State Management**: Manages graph data, selected node, UI state, and global data
+- **Data Fetching**: Handles API calls to fetch graph data on component mount
+- **Component Coordination**: Facilitates communication between GraphRenderer and PrefillUI
+- **User Interaction**: Handles node selection and prefill information display
+- **Global Data Management**: Provides system-wide data for prefill mapping
 
 ## Key Features
 
 ### State Management
 The component maintains several pieces of state:
-- `graphData`: The complete graph structure from the API
+- `graphData`: Complete graph structure from the API (nodes, forms, edges)
 - `selectedNodeId`: Currently selected node for information display
-- `isNodeInfoOpen`: Controls the visibility of the node information dialog
+- `isNodeInfoOpen`: Controls visibility of the prefill information dialog
+- `globalData`: System-wide data available for prefill mapping
+
+### Global Data
+Provides predefined global data for prefill mapping:
+- **User Information**: userId, sessionId, userRole
+- **System Information**: timestamp, environment, apiVersion
+- **Organization Data**: companyName, region, language, timezone
 
 ### Data Flow
 1. **Initial Load**: Fetches graph data on component mount
-2. **Node Selection**: Updates selected node and opens information dialog
-3. **State Synchronization**: Keeps all components in sync with current data
+2. **Node Selection**: Updates selected node and opens prefill dialog
+3. **Field Updates**: Handles form field value updates from prefill operations
+4. **State Synchronization**: Keeps all components in sync with current data
 
 ## API Integration
 
@@ -30,9 +39,9 @@ The component maintains several pieces of state:
 - `GET /api/v1/123/actions/blueprints/bp_456/bpv_123/graph` - Fetches initial graph data
 
 ### Error Handling
-- Catches and logs API errors
-- Provides user feedback for failed operations
-- Gracefully handles network issues
+- Catches and logs API errors gracefully
+- Provides fallback behavior for failed operations
+- Handles network issues without crashing the application
 
 ## Component Structure
 
@@ -42,10 +51,13 @@ const App = () => {
   const [graphData, setGraphData] = useState<any | undefined>(undefined)
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined)
   const [isNodeInfoOpen, setIsNodeInfoOpen] = useState(false)
+  const [globalData] = useState<Record<string, any>>({ /* global data */ })
 
   // Effects and handlers
+  useEffect(() => { /* ResizeObserver error suppression */ }, [])
   useEffect(() => { /* Data fetching */ }, [])
   const handleSelectNode = (nodeId) => { /* Selection logic */ }
+  const handleUpdateNodeField = (nodeId, fieldKey, value) => { /* Field update logic */ }
 
   // Render
   return (
@@ -63,8 +75,15 @@ const App = () => {
 - **Purpose**: Handles node selection from the graph
 - **Process**:
   1. Sets the selected node ID
-  2. Opens the node information dialog
-  3. Triggers NodeInfo to load node-specific data
+  2. Opens the prefill information dialog
+  3. Triggers PrefillUI to load node-specific data
+
+### handleUpdateNodeField
+- **Purpose**: Updates form field values when prefill operations occur
+- **Process**:
+  1. Receives node ID, field key, and new value
+  2. Updates the graph data state immutably
+  3. Maintains data consistency across components
 
 ## Component Integration
 
@@ -72,30 +91,38 @@ const App = () => {
 - **Props Passed**:
   - `graphData`: Current graph data
   - `onSelectNode`: Callback for node selection
+  - `onUpdateNodeField`: Callback for field updates
 
-### NodeInfo Integration
+### PrefillUI Integration
 - **Props Passed**:
   - `graphData`: Current graph data
   - `selectedNodeId`: ID of selected node
   - `isOpen`: Dialog visibility state
   - `onClose`: Callback to close dialog
+  - `onUpdateNodeField`: Callback for field updates
+  - `globalData`: System-wide data for prefill mapping
 
-## Styling
+## Error Handling
 
-The component uses CSS classes for layout:
-- `app-container`: Main application wrapper
+### ResizeObserver Error Suppression
+- **Purpose**: Prevents ResizeObserver loop errors from breaking the application
+- **Implementation**: 
+  - Listens for specific ResizeObserver error messages
+  - Suppresses error propagation and prevents default behavior
+  - Handles both error events and unhandled promise rejections
 
 ## Performance Considerations
 
 - **Data Fetching**: Only fetches data once on mount
 - **State Updates**: Uses React's built-in state management for efficient re-renders
-- **Error Boundaries**: Implements error handling to prevent crashes
+- **Immutable Updates**: Properly handles state updates to prevent unnecessary re-renders
+- **Error Boundaries**: Implements comprehensive error handling
 
 ## Dependencies
 
 - **React**: Core framework with hooks (useState, useEffect)
 - **GraphRenderer**: Custom component for graph visualization
-- **NodeInfo**: Custom component for node information display
+- **PrefillUI**: Custom component for prefill information and mapping
 - **CSS**: App-specific styling
 
 ## Usage Example
@@ -111,14 +138,16 @@ function RootComponent() {
 
 ## Recent Changes
 
-### Simplified Architecture
-- Removed complex prefill functionality
-- Eliminated unused state variables
-- Streamlined component integration
-- Focused on core graph visualization features
+### Enhanced Architecture
+- **Added Global Data**: Provides system-wide data for prefill mapping
+- **Improved State Management**: Better handling of form field updates
+- **Enhanced Error Handling**: Comprehensive ResizeObserver error suppression
+- **Streamlined Integration**: Cleaner communication between components
 
-### Removed Features
-- `autoPrefill` state and related logic
-- `updateNodeValue` function and API calls
-- Complex prefill mapping system
-- Unused control panels
+### Current Features
+- Graph data fetching and management
+- Node selection and information display
+- Form field prefill mapping system
+- Global data integration
+- Comprehensive error handling
+- Real-time field value updates

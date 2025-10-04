@@ -4,12 +4,13 @@ import NodeInfo from "./PrefillUI"
 import "./css/App.css"
 
 const App = () => {
+    // Core application state
     const [graphData, setGraphData] = useState<any | undefined>(undefined)
     const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined)
     const [isNodeInfoOpen, setIsNodeInfoOpen] = useState(false)
     
-    // Global data that can be used for prefill mapping
-    const [globalData, setGlobalData] = useState<Record<string, any>>({
+    // Global data available for prefill mapping across all nodes
+    const [globalData] = useState<Record<string, any>>({
         userId: 'user123',
         timestamp: new Date().toISOString(),
         sessionId: 'session456',
@@ -22,7 +23,7 @@ const App = () => {
         timezone: 'UTC'
     })
 
-    // Global ResizeObserver error suppression
+    // Suppress ResizeObserver loop errors that can break the application
     useEffect(() => {
         const handleResizeObserverError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -48,6 +49,7 @@ const App = () => {
         };
     }, []);
 
+    // Fetch graph data on component mount
     useEffect(() => {
         (async () => {
             try {
@@ -59,11 +61,13 @@ const App = () => {
         })()
     }, [])
 
+    // Handle node selection from graph
     const handleSelectNode = (nodeId: string) => {
         setSelectedNodeId(nodeId)
         setIsNodeInfoOpen(true)
     }
 
+    // Update form field values when prefill operations occur
     const handleUpdateNodeField = (nodeId: string, fieldKey: string, value: any) => {
         setGraphData((prevData: any) => {
             if (!prevData) return prevData;
