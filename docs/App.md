@@ -2,14 +2,13 @@
 
 ## Overview
 
-`App.tsx` is the main application component that orchestrates the graph visualization and prefill system. It manages global state, handles data fetching, coordinates communication between components, and provides global data for prefill mapping functionality.
+`App.tsx` is the main application component that orchestrates the graph visualization and prefill system. It manages global state, handles data fetching, and coordinates communication between components.
 
 ## Key Responsibilities
 
 - **State Management**: Manages graph data, selected node, UI state, and global data
 - **Data Fetching**: Handles API calls to fetch graph data on component mount
 - **Component Coordination**: Facilitates communication between GraphRenderer and PrefillUI
-- **User Interaction**: Handles node selection and prefill information display
 - **Global Data Management**: Provides system-wide data for prefill mapping
 
 ## Key Features
@@ -136,15 +135,8 @@ function RootComponent() {
 }
 ```
 
-## Recent Changes
+## Current Features
 
-### Enhanced Architecture
-- **Added Global Data**: Provides system-wide data for prefill mapping
-- **Improved State Management**: Better handling of form field updates
-- **Enhanced Error Handling**: Comprehensive ResizeObserver error suppression
-- **Streamlined Integration**: Cleaner communication between components
-
-### Current Features
 - Graph data fetching and management
 - Node selection and information display
 - Form field prefill mapping system

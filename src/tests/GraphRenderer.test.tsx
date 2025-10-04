@@ -169,10 +169,6 @@ describe('GraphRenderer Component', () => {
       expect(screen.getByTestId('react-flow')).toBeInTheDocument();
     });
 
-    test('renders with provided graph data', () => {
-      render(<GraphRender {...defaultProps} graphData={mockGraphData} />);
-      expect(screen.getByText('Graph Visualization')).toBeInTheDocument();
-    });
   });
 
   describe('Data Processing', () => {

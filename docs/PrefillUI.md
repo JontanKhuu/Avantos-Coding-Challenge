@@ -342,15 +342,8 @@ const getActualSourceInfo = (targetFieldKey: string, mapping: PrefillMapping) =>
 />
 ```
 
-## Recent Changes
+## Current Features
 
-### Enhanced Architecture
-- **Improved Source Display**: Better handling of source information display
-- **Enhanced Auto-Prefill**: More robust automatic field population
-- **Better Empty Field Handling**: Properly handles empty fields in source nodes
-- **Cleaner Code**: Removed unused functions and improved maintainability
-
-### Current Features
 - Comprehensive form field mapping system
 - Intelligent source discovery and management
 - Auto-prefill functionality with toggle control

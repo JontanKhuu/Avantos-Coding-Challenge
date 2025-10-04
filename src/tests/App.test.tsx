@@ -227,12 +227,6 @@ describe('App Component', () => {
       expect(screen.getByTestId('global-data-present')).toHaveTextContent('true');
     });
 
-    test('initializes with correct global data structure', () => {
-      render(<App />);
-      
-      // Global data should be present
-      expect(screen.getByTestId('global-data-present')).toHaveTextContent('true');
-    });
   });
 
   describe('ResizeObserver Error Handling', () => {

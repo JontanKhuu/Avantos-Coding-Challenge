@@ -213,15 +213,8 @@ interface GraphRenderProps {
 - **CSS**: Graph-specific styling
 - **API**: Backend data source
 
-## Recent Changes
+## Current Features
 
-### Enhanced Architecture
-- **Added Form Field Support**: Preserves and processes form field data
-- **Improved Error Handling**: Comprehensive ResizeObserver error suppression
-- **Enhanced Data Processing**: Better handling of component relationships
-- **Debounced Updates**: Prevents performance issues with rapid updates
-
-### Current Features
 - Core graph visualization functionality
 - Node and edge rendering with form field data
 - Interactive node selection

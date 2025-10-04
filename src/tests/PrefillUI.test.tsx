@@ -291,16 +291,323 @@ describe('PrefillUI Component', () => {
       expect(autoPrefillToggle).toBeChecked();
     });
 
-    test('auto-prefill functionality works correctly', async () => {
-      render(<NodeInfo {...defaultProps} />);
+
+    test('auto-prefill updates mapping when closer upstream data becomes available', async () => {
+      // Create a more complex test scenario with Form B -> Form E -> Form F
+      const complexGraphData = {
+        nodes: [
+          {
+            id: "form-b",
+            data: {
+              name: "Form B",
+              component_id: "f_01jk7awbhqewgbkbgk8rjm7bv7",
+              formFields: {
+                id: "",
+                name: "",
+                email: "form-b@example.com", // Form B has email
+                notes: ""
+              }
+            },
+            position: { x: 100, y: 100 }
+          },
+          {
+            id: "form-e",
+            data: {
+              name: "Form E",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Initially empty
+                notes: ""
+              }
+            },
+            position: { x: 200, y: 200 }
+          },
+          {
+            id: "form-f",
+            data: {
+              name: "Form F",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Target for prefill
+                notes: ""
+              }
+            },
+            position: { x: 300, y: 300 }
+          }
+        ],
+        forms: [
+          {
+            id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+            name: "test form",
+            field_schema: {
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                email: { type: "string" },
+                notes: { type: "string" }
+              }
+            }
+          }
+        ],
+        edges: [
+          { source: "form-b", target: "form-e" },
+          { source: "form-e", target: "form-f" }
+        ]
+      };
+
+      const complexProps = {
+        ...defaultProps,
+        graphData: complexGraphData,
+        selectedNodeId: 'form-f'
+      };
+
+      const { rerender } = render(<NodeInfo {...complexProps} />);
       
-      // Enable auto-prefill
+      // Enable auto-prefill for Form F
       const autoPrefillToggle = screen.getByRole('checkbox');
       fireEvent.click(autoPrefillToggle);
       
+      // Initially, Form F should map to Form B (furthest upstream with data)
       await waitFor(() => {
-        // Should automatically map and fill fields from upstream
-        expect(defaultProps.onUpdateNodeField).toHaveBeenCalled();
+        expect(defaultProps.onUpdateNodeField).toHaveBeenCalledWith('form-f', 'email', 'form-b@example.com');
+      });
+
+      // Now update Form E to have email data (closer upstream)
+      const updatedGraphData = {
+        ...complexGraphData,
+        nodes: complexGraphData.nodes.map(node => 
+          node.id === 'form-e' 
+            ? { ...node, data: { ...node.data, formFields: { ...node.data.formFields, email: 'form-e@example.com' } } }
+            : node
+        )
+      };
+
+      const updatedProps = {
+        ...complexProps,
+        graphData: updatedGraphData
+      };
+
+      rerender(<NodeInfo {...updatedProps} />);
+      
+      // Form F should now remap to Form E (closer upstream)
+      await waitFor(() => {
+        expect(defaultProps.onUpdateNodeField).toHaveBeenCalledWith('form-f', 'email', 'form-e@example.com');
+      });
+    });
+
+    test('auto-prefill falls back to other upstream sources when mapped source becomes empty', async () => {
+      // Create scenario: Form D -> Form F and Form E -> Form F (both direct upstream)
+      const complexGraphData = {
+        nodes: [
+          {
+            id: "form-d",
+            data: {
+              name: "Form D",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "form-d@example.com", // Form D has email
+                notes: ""
+              }
+            },
+            position: { x: 200, y: 200 }
+          },
+          {
+            id: "form-e",
+            data: {
+              name: "Form E",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "form-e@example.com", // Form E has email
+                notes: ""
+              }
+            },
+            position: { x: 300, y: 200 }
+          },
+          {
+            id: "form-f",
+            data: {
+              name: "Form F",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Target for prefill
+                notes: ""
+              }
+            },
+            position: { x: 400, y: 300 }
+          }
+        ],
+        forms: [
+          {
+            id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+            name: "test form",
+            field_schema: {
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                email: { type: "string" },
+                notes: { type: "string" }
+              }
+            }
+          }
+        ],
+        edges: [
+          { source: "form-d", target: "form-f" },
+          { source: "form-e", target: "form-f" }
+        ]
+      };
+
+      const complexProps = {
+        ...defaultProps,
+        graphData: complexGraphData,
+        selectedNodeId: 'form-f'
+      };
+
+      const { rerender } = render(<NodeInfo {...complexProps} />);
+      
+      // Enable auto-prefill for Form F
+      const autoPrefillToggle = screen.getByRole('checkbox');
+      fireEvent.click(autoPrefillToggle);
+      
+      // Initially, Form F should map to Form D (first edge processed)
+      await waitFor(() => {
+        expect(defaultProps.onUpdateNodeField).toHaveBeenCalledWith('form-f', 'email', 'form-d@example.com');
+      });
+
+      // Now clear Form D's email field
+      const updatedGraphData = {
+        ...complexGraphData,
+        nodes: complexGraphData.nodes.map(node => 
+          node.id === 'form-d'
+            ? { ...node, data: { ...node.data, formFields: { ...node.data.formFields, email: '' } } }
+            : node
+        )
+      };
+
+      const updatedProps = {
+        ...complexProps,
+        graphData: updatedGraphData
+      };
+
+      rerender(<NodeInfo {...updatedProps} />);
+      
+      // Form F should now fall back to Form E (the other direct upstream source)
+      await waitFor(() => {
+        expect(defaultProps.onUpdateNodeField).toHaveBeenCalledWith('form-f', 'email', 'form-e@example.com');
+      });
+    });
+
+    test('BFS approach prioritizes direct upstream sources over deeper sources', async () => {
+      // Create scenario: Form C -> Form D -> Form F and Form C -> Form E -> Form F
+      // Form C has email, Form D and Form E are empty
+      // Form F should get data from Form C (furthest upstream) since D and E are empty
+      const bfsGraphData = {
+        nodes: [
+          {
+            id: "form-c",
+            data: {
+              name: "Form C",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "form-c@example.com", // Only Form C has email
+                notes: ""
+              }
+            },
+            position: { x: 100, y: 100 }
+          },
+          {
+            id: "form-d",
+            data: {
+              name: "Form D",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Empty
+                notes: ""
+              }
+            },
+            position: { x: 200, y: 200 }
+          },
+          {
+            id: "form-e",
+            data: {
+              name: "Form E",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Empty
+                notes: ""
+              }
+            },
+            position: { x: 300, y: 200 }
+          },
+          {
+            id: "form-f",
+            data: {
+              name: "Form F",
+              component_id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+              formFields: {
+                id: "",
+                name: "",
+                email: "", // Target for prefill
+                notes: ""
+              }
+            },
+            position: { x: 400, y: 300 }
+          }
+        ],
+        forms: [
+          {
+            id: "f_01jk7ap2r3ewf9gx6a9r09gzjv",
+            name: "test form",
+            field_schema: {
+              properties: {
+                id: { type: "string" },
+                name: { type: "string" },
+                email: { type: "string" },
+                notes: { type: "string" }
+              }
+            }
+          }
+        ],
+        edges: [
+          { source: "form-c", target: "form-d" },
+          { source: "form-c", target: "form-e" },
+          { source: "form-d", target: "form-f" },
+          { source: "form-e", target: "form-f" }
+        ]
+      };
+
+      const bfsProps = {
+        ...defaultProps,
+        graphData: bfsGraphData,
+        selectedNodeId: 'form-f'
+      };
+
+      render(<NodeInfo {...bfsProps} />);
+      
+      // Enable auto-prefill for Form F
+      const autoPrefillToggle = screen.getByRole('checkbox');
+      fireEvent.click(autoPrefillToggle);
+      
+      // Form F should get data from Form C (furthest upstream with data)
+      // BFS ensures it checks Form D and Form E first (level 1), finds they're empty,
+      // then checks Form C (level 2) and finds data
+      await waitFor(() => {
+        expect(defaultProps.onUpdateNodeField).toHaveBeenCalledWith('form-f', 'email', 'form-c@example.com');
       });
     });
   });

@@ -3,10 +3,10 @@ import {ReactFlow, Node, Edge,} from '@xyflow/react';
 import '@xyflow/react/dist/style.css'
 import "./css/Graphrenderer.css"
 
-// API endpoint for fetching graph data
+// API endpoint for graph data
 const API_URL = "http://localhost:3000/api/v1/123/actions/blueprints/bp_456/bpv_123/graph";
 
-// Fetch graph data from the API
+// Fetch graph data from API
 export const fetchGraphData = async (): Promise<any> => {
     const response = await fetch(API_URL);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -21,7 +21,7 @@ const processGraphData = (data: any): { nodes: Node[], edges: Edge[] } => {
 		id: node.id,
 		data: { 
 			label: node?.data?.name,
-			formFields: node?.data?.formFields || {}, // Preserve form field values for prefill
+			formFields: node?.data?.formFields || {}, // Preserve form fields
 			componentId: node?.data?.component_id
 		},
 		position: node.position
@@ -47,7 +47,7 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
     const [nodes, setNodes] = useState<Node[]>([])
     const [edges, setEdges] = useState<Edge[]>([])
 
-    // Comprehensive ResizeObserver error suppression to prevent application crashes
+    // Suppress ResizeObserver errors
     useEffect(() => {
         const handleResizeObserverError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -64,11 +64,11 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
             }
         };
 
-        // Listen for ResizeObserver errors through multiple event paths
+        // Listen for ResizeObserver errors
         window.addEventListener('error', handleResizeObserverError);
         window.addEventListener('unhandledrejection', handleUnhandledRejection);
         
-        // Suppress console errors for ResizeObserver issues
+        // Suppress console errors
         const originalConsoleError = console.error;
         console.error = (...args) => {
             if (args[0] && typeof args[0] === 'string' && 
@@ -85,14 +85,14 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
         };
     }, []);
 
-    // Handle node click events
+    // Handle node clicks
     const handleNodeClick = (event: React.MouseEvent, node: Node) => {
         if (onSelectNode) {
             onSelectNode(node.id);
         }
     };
 
-    // Process graph data with debouncing to prevent ResizeObserver issues
+    // Process graph data with debouncing
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (graphData) {
@@ -120,7 +120,7 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
 
     return (
         <>
-            <h1>Graph Visualization</h1>
+            <h1>DAG Visualization</h1>
             <div className="graph-container">
                 <ReactFlow 
                     nodes={nodes}

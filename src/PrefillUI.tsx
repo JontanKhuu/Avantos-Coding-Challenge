@@ -42,7 +42,7 @@ interface NodeInfoProps {
     globalData: Record<string, any>;
 }
 
-// Link nodes to their associated forms for prefill functionality
+// Link nodes to their forms
 const processGraphData = (data: GraphData): ProcessedNode[] => {
   const formMap = new Map(data.forms.map(form => [form.id, form]));
   return data.nodes.map(node => ({
@@ -51,7 +51,7 @@ const processGraphData = (data: GraphData): ProcessedNode[] => {
   }));
 };
 
-// Find all predecessor nodes using breadth-first search
+// Find all predecessor nodes using BFS
 const findPredecessorNodeIds = (targetNodeId: string, data: GraphData): string[] => {
     if (!data.edges) return [];
     
@@ -74,57 +74,81 @@ const findPredecessorNodeIds = (targetNodeId: string, data: GraphData): string[]
     return Array.from(predecessors);
 };
 
-// Traverse upstream chain to find data for a specific field
+// Traverse upstream using BFS to find field data
 const traverseUpstreamForData = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): any => {
-    // Find direct upstream nodes (immediate predecessors)
-    const upstreamEdges = graphData.edges.filter(edge => edge.target === currentNodeId);
+    const queue: string[] = [currentNodeId];
+    const visited = new Set<string>();
     
-    for (const edge of upstreamEdges) {
-        const upstreamNode = processedNodes.find(n => n.id === edge.source);
-        if (!upstreamNode) continue;
+    while (queue.length > 0) {
+        const currentId = queue.shift()!;
         
-        // Check if upstream node has data for this field
-        const upstreamValue = upstreamNode.data.formFields?.[fieldKey];
-        if (upstreamValue !== undefined && upstreamValue !== null && upstreamValue !== '') {
-            return upstreamValue; // Found data, return it
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+        
+        // Find direct upstream nodes
+        const upstreamEdges = graphData.edges.filter(edge => edge.target === currentId);
+        
+        // Check all direct upstream nodes first (BFS)
+        for (const edge of upstreamEdges) {
+            const upstreamNode = processedNodes.find(n => n.id === edge.source);
+            if (!upstreamNode) continue;
+            
+            // Check if upstream node has data for this field
+            const upstreamValue = upstreamNode.data.formFields?.[fieldKey];
+            if (upstreamValue !== undefined && upstreamValue !== null && upstreamValue !== '') {
+                return upstreamValue; // Found data at this level, return it
+            }
         }
         
-        // If no data found, recursively check further upstream
-        const deeperValue = traverseUpstreamForData(edge.source, fieldKey, graphData, processedNodes);
-        if (deeperValue !== undefined && deeperValue !== null && deeperValue !== '') {
-            return deeperValue; // Found data deeper upstream
+        // If no data found at this level, add all upstream nodes to queue for next level
+        for (const edge of upstreamEdges) {
+            if (!visited.has(edge.source)) {
+                queue.push(edge.source);
+            }
         }
     }
     
     return null; // No data found in entire upstream chain
 };
 
-// Find the node ID that contains data for a specific field
+// Find the node ID that contains field data using BFS
 const findUpstreamSourceNode = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null => {
-    // Find direct upstream nodes (immediate predecessors)
-    const upstreamEdges = graphData.edges.filter(edge => edge.target === currentNodeId);
+    const queue: string[] = [currentNodeId];
+    const visited = new Set<string>();
     
-    for (const edge of upstreamEdges) {
-        const upstreamNode = processedNodes.find(n => n.id === edge.source);
-        if (!upstreamNode) continue;
+    while (queue.length > 0) {
+        const currentId = queue.shift()!;
         
-        // Check if upstream node has data for this field
-        const upstreamValue = upstreamNode.data.formFields?.[fieldKey];
-        if (upstreamValue !== undefined && upstreamValue !== null && upstreamValue !== '') {
-            return edge.source; // Found data, return the source node ID
+        if (visited.has(currentId)) continue;
+        visited.add(currentId);
+        
+        // Find direct upstream nodes
+        const upstreamEdges = graphData.edges.filter(edge => edge.target === currentId);
+        
+        // Check all direct upstream nodes first (BFS)
+        for (const edge of upstreamEdges) {
+            const upstreamNode = processedNodes.find(n => n.id === edge.source);
+            if (!upstreamNode) continue;
+            
+            // Check if upstream node has data for this field
+            const upstreamValue = upstreamNode.data.formFields?.[fieldKey];
+            if (upstreamValue !== undefined && upstreamValue !== null && upstreamValue !== '') {
+                return edge.source; // Found data at this level, return the source node ID
+            }
         }
         
-        // If no data found, recursively check further upstream
-        const deeperSource = findUpstreamSourceNode(edge.source, fieldKey, graphData, processedNodes);
-        if (deeperSource) {
-            return deeperSource; // Found data deeper upstream
+        // If no data found at this level, add all upstream nodes to queue for next level
+        for (const edge of upstreamEdges) {
+            if (!visited.has(edge.source)) {
+                queue.push(edge.source);
+            }
         }
     }
     
     return null; // No data found in entire upstream chain
 };
 
-// Get the name of the node that actually contains data for a field
+// Get the name of the node that contains field data
 const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null => {
     const sourceNodeId = findUpstreamSourceNode(currentNodeId, fieldKey, graphData, processedNodes);
     if (sourceNodeId) {
@@ -134,7 +158,7 @@ const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graph
     return null;
 };
 
-// Get the name of the node that a field is explicitly mapped to
+// Get the name of the node that a field is mapped to
 const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: ProcessedNode[]): string | null => {
     if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceNodeId) {
         const sourceNode = processedNodes.find(n => n.id === mapping.sourceNodeId);
@@ -144,7 +168,7 @@ const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: Proce
 };
 
 const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeField, globalData }: NodeInfoProps) => {
-    // Component state for prefill functionality
+    // Component state
     const [prefillMappings, setPrefillMappings] = useState<Record<string, Record<string, PrefillMapping>>>({});
     const [fieldToMap, setFieldToMap] = useState<string | null>(null);
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -158,7 +182,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
     
     const selectedNode = processedNodes.find(n => n.id === selectedNodeId);
 
-    // Auto-prefill: populate fields from upstream data when enabled
+    // Auto-prefill: populate fields from upstream data
     useEffect(() => {
         if (!graphData || !selectedNodeId || !selectedNode) return;
 
@@ -168,39 +192,62 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         targetFields.forEach(targetFieldKey => {
             const mapping = currentMappings[targetFieldKey];
             let sourceValue: any = null;
+            let shouldUpdateMapping = false;
 
-            if (mapping) {
-                // Use existing mapping (always works regardless of auto-prefill toggle)
-                if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceFieldKey) {
-                    sourceValue = traverseUpstreamForData(selectedNodeId, mapping.sourceFieldKey, graphData, processedNodes);
-                } else if (mapping.sourceType === 'GLOBAL_DATA' && mapping.globalDataKey) {
-                    sourceValue = globalData[mapping.globalDataKey];
-                }
+            if (mapping && mapping.sourceType === 'GLOBAL_DATA' && mapping.globalDataKey) {
+                // Global data mappings don't change
+                sourceValue = globalData[mapping.globalDataKey];
             } else if (autoPrefillEnabled[selectedNodeId]) {
-                // No mapping exists - automatically check upstream for same field name (only if auto-prefill enabled)
+                // Auto-prefill: check for closest upstream data
                 sourceValue = traverseUpstreamForData(selectedNodeId, targetFieldKey, graphData, processedNodes);
                 
-                // If we found data upstream, create an automatic mapping with source node ID
                 if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
-                    const sourceNodeId = findUpstreamSourceNode(selectedNodeId, targetFieldKey, graphData, processedNodes);
-                    if (sourceNodeId) {
-                        setPrefillMappings(prev => ({
-                            ...prev,
-                            [selectedNodeId]: {
-                                ...(prev[selectedNodeId] || {}),
-                                [targetFieldKey]: {
-                                    sourceType: 'NODE_FIELD',
-                                    sourceNodeId: sourceNodeId,
-                                    sourceFieldKey: targetFieldKey
-                                }
-                            }
-                        }));
+                    const closestSourceNodeId = findUpstreamSourceNode(selectedNodeId, targetFieldKey, graphData, processedNodes);
+                    
+                    if (closestSourceNodeId) {
+                        // Update mapping if closer source found
+                        if (!mapping || mapping.sourceNodeId !== closestSourceNodeId) {
+                            shouldUpdateMapping = true;
+                        }
+                    }
+                }
+            } else if (mapping && mapping.sourceType === 'NODE_FIELD' && mapping.sourceFieldKey) {
+                // Manual mapping: use existing mapping
+                sourceValue = traverseUpstreamForData(selectedNodeId, mapping.sourceFieldKey, graphData, processedNodes);
+                
+                // If mapped field is empty and auto-prefill enabled, restart search
+                if ((sourceValue === undefined || sourceValue === null || sourceValue === '') && autoPrefillEnabled[selectedNodeId]) {
+                    // Restart search from target node for target field
+                    sourceValue = traverseUpstreamForData(selectedNodeId, targetFieldKey, graphData, processedNodes);
+                    if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
+                        const closestSourceNodeId = findUpstreamSourceNode(selectedNodeId, targetFieldKey, graphData, processedNodes);
+                        if (closestSourceNodeId) {
+                            shouldUpdateMapping = true;
+                        }
                     }
                 }
             }
 
+            // Update mapping if needed
+            if (shouldUpdateMapping) {
+                const closestSourceNodeId = findUpstreamSourceNode(selectedNodeId, targetFieldKey, graphData, processedNodes);
+                if (closestSourceNodeId) {
+                    setPrefillMappings(prev => ({
+                        ...prev,
+                        [selectedNodeId]: {
+                            ...(prev[selectedNodeId] || {}),
+                            [targetFieldKey]: {
+                                sourceType: 'NODE_FIELD',
+                                sourceNodeId: closestSourceNodeId,
+                                sourceFieldKey: targetFieldKey
+                            }
+                        }
+                    }));
+                }
+            }
+
             if (sourceValue !== undefined && sourceValue !== null && sourceValue !== '') {
-                // Only update if the current value is different to prevent infinite loops
+                // Only update if value changed to prevent infinite loops
                 const currentValue = selectedNode.data.formFields?.[targetFieldKey];
                 if (currentValue !== sourceValue) {
                     onUpdateNodeField(selectedNodeId, targetFieldKey, sourceValue);
@@ -209,7 +256,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         });
     }, [graphData, selectedNodeId, selectedNode, prefillMappings, globalData, onUpdateNodeField, autoPrefillEnabled, processedNodes]);
 
-    // Validate upstream sources and clear fields when data becomes unavailable
+    // Validate upstream sources and clear empty fields
     useEffect(() => {
         if (!graphData || !selectedNodeId || !selectedNode) return;
 
@@ -226,7 +273,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
                 const currentValue = selectedNode.data.formFields?.[targetFieldKey];
                 
                 if (!sourceValue || sourceValue === '') {
-                    // No data found in upstream chain, clear the field only if it has data
+                    // Clear field if no data found upstream
                     if (currentValue && currentValue !== '') {
                         onUpdateNodeField(selectedNodeId, targetFieldKey, '');
                     }
@@ -235,7 +282,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         });
     }, [graphData, selectedNodeId, selectedNode, prefillMappings, processedNodes, onUpdateNodeField]);
 
-    // Calculate available data sources for prefill mapping
+    // Calculate available data sources
     const availableSources = useMemo(() => {
         if (!graphData || !selectedNodeId) return {};
 
@@ -326,13 +373,13 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         }
         
         if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceFieldKey) {
-            // First try to get the mapped source node name (regardless of whether it has data)
+            // Try mapped source node name first
             const mappedSourceNodeName = findMappedSourceNodeName(mapping, processedNodes);
             if (mappedSourceNodeName) {
                 return `${mappedSourceNodeName}.${mapping.sourceFieldKey}`;
             }
             
-            // Fallback: try to find actual source node name by traversing upstream
+            // Fallback: find actual source node name
             const actualSourceNodeName = findActualSourceNodeName(selectedNodeId!, mapping.sourceFieldKey, graphData!, processedNodes);
             if (actualSourceNodeName) {
                 return `${actualSourceNodeName}.${mapping.sourceFieldKey}`;

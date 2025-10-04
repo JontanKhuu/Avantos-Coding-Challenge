@@ -11,10 +11,6 @@ export const mockGraphData = {
             name: "John Doe",
             email: "john.doe@example.com",
             notes: "Initial user registration",
-            multi_select: ["foo", "bar"],
-            dynamic_checkbox_group: ["foo"],
-            dynamic_object: { title: "Sample Object" },
-            button: { title: "Submit" }
           }
         },
         position: { x: 494, y: 269 }
@@ -29,10 +25,6 @@ export const mockGraphData = {
             name: "Jane Smith",
             email: "", // Empty field for testing
             notes: "Contact information form",
-            multi_select: ["foobar"],
-            dynamic_checkbox_group: ["bar"],
-            dynamic_object: {},
-            button: { title: "Save" }
           }
         },
         position: { x: 780.692362673456, y: 154.98072799490808 }
@@ -47,10 +39,6 @@ export const mockGraphData = {
             name: "Bob Johnson",
             email: "bob.johnson@example.com",
             notes: "Additional processing form",
-            multi_select: ["foo", "bar", "foobar"],
-            dynamic_checkbox_group: ["foo", "bar"],
-            dynamic_object: { title: "Foo" },
-            button: { title: "Process" }
           }
         },
         position: { x: 779.0096360025458, y: 362.36545334182 }
@@ -65,10 +53,6 @@ export const mockGraphData = {
             name: "Alice Brown",
             email: "alice.brown@example.com",
             notes: "Review and approval form",
-            multi_select: ["bar"],
-            dynamic_checkbox_group: ["foobar"],
-            dynamic_object: { title: "Review Object" },
-            button: { title: "Approve" }
           }
         },
         position: { x: 1093.4015147514929, y: 155.2205909169969 }
@@ -83,10 +67,6 @@ export const mockGraphData = {
             name: "", // Empty - target for prefill testing
             email: "", // Empty - target for prefill testing
             notes: "", // Empty - target for prefill testing
-            multi_select: [],
-            dynamic_checkbox_group: [],
-            dynamic_object: {},
-            button: { title: "Final Submit" }
           }
         },
         position: { x: 1099.7646441474558, y: 361.86975131228957 }
@@ -101,10 +81,6 @@ export const mockGraphData = {
             name: "", // Empty - final target for testing
             email: "", // Empty - final target for testing
             notes: "", // Empty - final target for testing
-            multi_select: [],
-            dynamic_checkbox_group: [],
-            dynamic_object: {},
-            button: { title: "Complete" }
           }
         },
         position: { x: 1437, y: 264 }
@@ -116,60 +92,12 @@ export const mockGraphData = {
         name: "test form",
         description: "test",
         field_schema: {
-          type: "object",
           properties: {
-            button: {
-              avantos_type: "button",
-              title: "Button",
-              type: "object"
-            },
-            dynamic_checkbox_group: {
-              avantos_type: "checkbox-group",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            dynamic_object: {
-              avantos_type: "object-enum",
-              enum: null,
-              title: "Dynamic Object",
-              type: "object"
-            },
-            email: {
-              avantos_type: "short-text",
-              format: "email",
-              title: "Email",
-              type: "string"
-            },
-            id: {
-              avantos_type: "short-text",
-              title: "ID",
-              type: "string"
-            },
-            multi_select: {
-              avantos_type: "multi-select",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            name: {
-              avantos_type: "short-text",
-              title: "Name",
-              type: "string"
-            },
-            notes: {
-              avantos_type: "multi-line-text",
-              title: "Notes",
-              type: "string"
-            }
-          },
-          required: ["id", "name", "email"]
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string" },
+            notes: { type: "string" }
+          }
         }
       },
       {
@@ -177,60 +105,12 @@ export const mockGraphData = {
         name: "test form",
         description: "test",
         field_schema: {
-          type: "object",
           properties: {
-            button: {
-              avantos_type: "button",
-              title: "Button",
-              type: "object"
-            },
-            dynamic_checkbox_group: {
-              avantos_type: "checkbox-group",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            dynamic_object: {
-              avantos_type: "object-enum",
-              enum: [],
-              title: "Dynamic Object",
-              type: "object"
-            },
-            email: {
-              avantos_type: "short-text",
-              format: "email",
-              title: "Email",
-              type: "string"
-            },
-            id: {
-              avantos_type: "short-text",
-              title: "ID",
-              type: "string"
-            },
-            multi_select: {
-              avantos_type: "multi-select",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            name: {
-              avantos_type: "short-text",
-              title: "Name",
-              type: "string"
-            },
-            notes: {
-              avantos_type: "multi-line-text",
-              title: "Notes",
-              type: "string"
-            }
-          },
-          required: ["id", "name", "email"]
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string" },
+            notes: { type: "string" }
+          }
         }
       },
       {
@@ -238,60 +118,12 @@ export const mockGraphData = {
         name: "test form",
         description: "test",
         field_schema: {
-          type: "object",
           properties: {
-            button: {
-              avantos_type: "button",
-              title: "Button",
-              type: "object"
-            },
-            dynamic_checkbox_group: {
-              avantos_type: "checkbox-group",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            dynamic_object: {
-              avantos_type: "object-enum",
-              enum: [{ title: "Foo" }],
-              title: "Dynamic Object",
-              type: "object"
-            },
-            email: {
-              avantos_type: "short-text",
-              format: "email",
-              title: "Email",
-              type: "string"
-            },
-            id: {
-              avantos_type: "short-text",
-              title: "ID",
-              type: "string"
-            },
-            multi_select: {
-              avantos_type: "multi-select",
-              items: {
-                enum: ["foo", "bar", "foobar"],
-                type: "string"
-              },
-              type: "array",
-              uniqueItems: true
-            },
-            name: {
-              avantos_type: "short-text",
-              title: "Name",
-              type: "string"
-            },
-            notes: {
-              avantos_type: "multi-line-text",
-              title: "Notes",
-              type: "string"
-            }
-          },
-          required: ["id", "name", "email"]
+            id: { type: "string" },
+            name: { type: "string" },
+            email: { type: "string" },
+            notes: { type: "string" }
+          }
         }
       }
     ],
@@ -321,70 +153,4 @@ export const mockGraphData = {
         target: "form-bad163fd-09bd-4710-ad80-245f31b797d5"
       }
     ]
-  };
-  
-  export const mockGlobalData = {
-    userId: 'user123',
-    timestamp: new Date().toISOString(),
-    sessionId: 'session456',
-    companyName: 'Avantos Corp',
-    environment: 'development',
-    apiVersion: 'v1.0',
-    userRole: 'admin',
-    region: 'us-east-1',
-    language: 'en',
-    timezone: 'UTC',
-    // Additional fields that might be useful for testing
-    customerId: 'cust-789',
-    workflowId: 'wf-456',
-    processId: 'proc-123'
-  };
-  
-  // Test scenarios for different prefill situations
-  export const testScenarios = {
-    // Scenario 1: Form E (empty) should be able to get data from Form A (has data)
-    formEWithDataFromA: {
-      targetNodeId: "form-e15d42df-c7c0-4819-9391-53730e6d47b3", // Form E
-      sourceNodeId: "form-47c61d17-62b0-4c42-8ca2-0eff641c9d88", // Form A
-      fieldToMap: "email",
-      expectedSourceDisplay: "Form A.email",
-      expectedValue: "john.doe@example.com"
-    },
-    
-    // Scenario 2: Form E should be able to get data from Form B (has some empty fields)
-    formEWithDataFromB: {
-      targetNodeId: "form-e15d42df-c7c0-4819-9391-53730e6d47b3", // Form E
-      sourceNodeId: "form-a4750667-d774-40fb-9b0a-44f8539ff6c4", // Form B
-      fieldToMap: "name",
-      expectedSourceDisplay: "Form B.name",
-      expectedValue: "Jane Smith"
-    },
-    
-    // Scenario 3: Form F should be able to get data from Form D (non-immediate upstream)
-    formFWithDataFromD: {
-      targetNodeId: "form-bad163fd-09bd-4710-ad80-245f31b797d5", // Form F
-      sourceNodeId: "form-0f58384c-4966-4ce6-9ec2-40b96d61f745", // Form D
-      fieldToMap: "email",
-      expectedSourceDisplay: "Form D.email",
-      expectedValue: "alice.brown@example.com"
-    },
-    
-    // Scenario 4: Test empty field mapping (should still show source node name)
-    formEWithEmptyFieldFromB: {
-      targetNodeId: "form-e15d42df-c7c0-4819-9391-53730e6d47b3", // Form E
-      sourceNodeId: "form-a4750667-d774-40fb-9b0a-44f8539ff6c4", // Form B
-      fieldToMap: "email", // Form B has empty email
-      expectedSourceDisplay: "Form B.email",
-      expectedValue: ""
-    }
-  };
-  
-  // Helper function to get a specific node by name
-  export const getNodeByName = (graphData: typeof mockGraphData, name: string) => {
-    return graphData.nodes.find(node => node.data.name === name);
-  };
-  
-  // Helper function to get a specific form by id
-  export const getFormById = (graphData: typeof mockGraphData, id: string) => {
-    return graphData.forms.find(form => form.id === id);
   };

@@ -9,7 +9,7 @@ const App = () => {
     const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined)
     const [isNodeInfoOpen, setIsNodeInfoOpen] = useState(false)
     
-    // Global data available for prefill mapping across all nodes
+    // Global data for prefill mapping
     const [globalData] = useState<Record<string, any>>({
         userId: 'user123',
         timestamp: new Date().toISOString(),
@@ -23,7 +23,7 @@ const App = () => {
         timezone: 'UTC'
     })
 
-    // Suppress ResizeObserver loop errors that can break the application
+    // Suppress ResizeObserver errors
     useEffect(() => {
         const handleResizeObserverError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
@@ -49,7 +49,7 @@ const App = () => {
         };
     }, []);
 
-    // Fetch graph data on component mount
+    // Fetch graph data on mount
     useEffect(() => {
         (async () => {
             try {
@@ -61,13 +61,13 @@ const App = () => {
         })()
     }, [])
 
-    // Handle node selection from graph
+    // Handle node selection
     const handleSelectNode = (nodeId: string) => {
         setSelectedNodeId(nodeId)
         setIsNodeInfoOpen(true)
     }
 
-    // Update form field values when prefill operations occur
+    // Update form field values
     const handleUpdateNodeField = (nodeId: string, fieldKey: string, value: any) => {
         setGraphData((prevData: any) => {
             if (!prevData) return prevData;
