@@ -120,6 +120,23 @@ const findUpstreamSourceNode = (currentNodeId: string, fieldKey: string, graphDa
     return null; // No data found in entire upstream chain
 };
 
+const findActualSourceNodeName = (currentNodeId: string, fieldKey: string, graphData: GraphData, processedNodes: ProcessedNode[]): string | null => {
+    const sourceNodeId = findUpstreamSourceNode(currentNodeId, fieldKey, graphData, processedNodes);
+    if (sourceNodeId) {
+        const sourceNode = processedNodes.find(n => n.id === sourceNodeId);
+        return sourceNode ? sourceNode.data.name : null;
+    }
+    return null;
+};
+
+const findMappedSourceNodeName = (mapping: PrefillMapping, processedNodes: ProcessedNode[]): string | null => {
+    if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceNodeId) {
+        const sourceNode = processedNodes.find(n => n.id === mapping.sourceNodeId);
+        return sourceNode ? sourceNode.data.name : null;
+    }
+    return null;
+};
+
 const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeField, globalData }: NodeInfoProps) => {
     const [prefillMappings, setPrefillMappings] = useState<Record<string, Record<string, PrefillMapping>>>({});
     const [fieldToMap, setFieldToMap] = useState<string | null>(null);
@@ -182,7 +199,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
                 }
             }
         });
-    }, [graphData, selectedNodeId, selectedNode?.id, prefillMappings, globalData, onUpdateNodeField, autoPrefillEnabled]);
+    }, [graphData, selectedNodeId, selectedNode, prefillMappings, globalData, onUpdateNodeField, autoPrefillEnabled, processedNodes]);
 
     // Check upstream sources and clear fields when sources are invalid
     useEffect(() => {
@@ -208,7 +225,7 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
                 }
             }
         });
-    }, [graphData, selectedNodeId, selectedNode?.id, prefillMappings, processedNodes, onUpdateNodeField]);
+    }, [graphData, selectedNodeId, selectedNode, prefillMappings, processedNodes, onUpdateNodeField]);
 
     const availableSources = useMemo(() => {
         if (!graphData || !selectedNodeId) return {};
@@ -293,11 +310,6 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         }
     };
 
-    const handleFieldValueChange = (fieldKey: string, value: any) => {
-        if (selectedNodeId) {
-            onUpdateNodeField(selectedNodeId, fieldKey, value);
-        }
-    };
 
     const getActualSourceInfo = (targetFieldKey: string, mapping: PrefillMapping) => {
         if (mapping.sourceType === 'GLOBAL_DATA' && mapping.globalDataKey) {
@@ -305,18 +317,18 @@ const NodeInfo = ({ graphData, selectedNodeId, isOpen, onClose, onUpdateNodeFiel
         }
         
         if (mapping.sourceType === 'NODE_FIELD' && mapping.sourceFieldKey) {
-            // Find the actual source by traversing upstream
-            const sourceValue = traverseUpstreamForData(selectedNodeId!, mapping.sourceFieldKey, graphData!, processedNodes);
-            if (sourceValue !== null) {
-                // Find which upstream node has this data
-                const upstreamEdges = graphData!.edges.filter(edge => edge.target === selectedNodeId);
-                for (const edge of upstreamEdges) {
-                    const upstreamNode = processedNodes.find(n => n.id === edge.source);
-                    if (upstreamNode && upstreamNode.data.formFields?.[mapping.sourceFieldKey] === sourceValue) {
-                        return `${upstreamNode.data.name}.${mapping.sourceFieldKey}`;
-                    }
-                }
+            // First try to get the mapped source node name (regardless of whether it has data)
+            const mappedSourceNodeName = findMappedSourceNodeName(mapping, processedNodes);
+            if (mappedSourceNodeName) {
+                return `${mappedSourceNodeName}.${mapping.sourceFieldKey}`;
             }
+            
+            // Fallback: try to find actual source node name by traversing upstream
+            const actualSourceNodeName = findActualSourceNodeName(selectedNodeId!, mapping.sourceFieldKey, graphData!, processedNodes);
+            if (actualSourceNodeName) {
+                return `${actualSourceNodeName}.${mapping.sourceFieldKey}`;
+            }
+            
             return `Upstream.${mapping.sourceFieldKey}`;
         }
         

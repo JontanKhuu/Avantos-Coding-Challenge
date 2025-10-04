@@ -43,16 +43,42 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
     const [nodes, addNode] = useState<Node[]>([])
     const [edges, addEdge] = useState<Edge[]>([])
 
-    // Suppress ResizeObserver errors
+    // Suppress ResizeObserver errors comprehensively
     useEffect(() => {
         const handleResizeObserverError = (e: ErrorEvent) => {
             if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
                 e.stopImmediatePropagation();
+                e.preventDefault();
+                return false;
             }
         };
 
+        const handleUnhandledRejection = (e: PromiseRejectionEvent) => {
+            if (e.reason && e.reason.message === 'ResizeObserver loop completed with undelivered notifications.') {
+                e.preventDefault();
+                return false;
+            }
+        };
+
+        // Add multiple event listeners to catch all possible error paths
         window.addEventListener('error', handleResizeObserverError);
-        return () => window.removeEventListener('error', handleResizeObserverError);
+        window.addEventListener('unhandledrejection', handleUnhandledRejection);
+        
+        // Also suppress console errors for this specific case
+        const originalConsoleError = console.error;
+        console.error = (...args) => {
+            if (args[0] && typeof args[0] === 'string' && 
+                args[0].includes('ResizeObserver loop completed with undelivered notifications')) {
+                return; // Suppress this specific error
+            }
+            originalConsoleError.apply(console, args);
+        };
+
+        return () => {
+            window.removeEventListener('error', handleResizeObserverError);
+            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+            console.error = originalConsoleError;
+        };
     }, []);
 
     const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
@@ -62,23 +88,28 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
     }, [onSelectNode]);
 
     useEffect(() => {
-        if (graphData) {
-            const { nodes, edges } = processGraphData(graphData)
-            addNode(nodes)
-            addEdge(edges)
-            return
-        }
-
-        (async () => {  
-            try {
-                const data = await fetchGraphData()
-                const { nodes, edges } = processGraphData(data);
+        // Debounce updates to prevent rapid ResizeObserver triggers
+        const timeoutId = setTimeout(() => {
+            if (graphData) {
+                const { nodes, edges } = processGraphData(graphData)
                 addNode(nodes)
                 addEdge(edges)
-            } catch (error) {
-                console.error("Error fetching DAG: ", error); 
+                return
             }
-        })()
+
+            (async () => {  
+                try {
+                    const data = await fetchGraphData()
+                    const { nodes, edges } = processGraphData(data);
+                    addNode(nodes)
+                    addEdge(edges)
+                } catch (error) {
+                    console.error("Error fetching DAG: ", error); 
+                }
+            })()
+        }, 100); // 100ms debounce
+
+        return () => clearTimeout(timeoutId);
     }, [graphData])
 
     return (
@@ -93,6 +124,13 @@ const GraphRender = ({ graphData, onSelectNode, onUpdateNodeField }: GraphRender
                     fitViewOptions={{ padding: 0.1 }}
                     minZoom={0.1}
                     maxZoom={2}
+                    deleteKeyCode={null}
+                    multiSelectionKeyCode={null}
+                    selectionKeyCode={null}
+                    preventScrolling={false}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={true}
                 />
             </div>
         </>

@@ -22,6 +22,32 @@ const App = () => {
         timezone: 'UTC'
     })
 
+    // Global ResizeObserver error suppression
+    useEffect(() => {
+        const handleResizeObserverError = (e: ErrorEvent) => {
+            if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                return false;
+            }
+        };
+
+        const handleUnhandledRejection = (e: PromiseRejectionEvent) => {
+            if (e.reason && e.reason.message === 'ResizeObserver loop completed with undelivered notifications.') {
+                e.preventDefault();
+                return false;
+            }
+        };
+
+        window.addEventListener('error', handleResizeObserverError);
+        window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+        return () => {
+            window.removeEventListener('error', handleResizeObserverError);
+            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+        };
+    }, []);
+
     useEffect(() => {
         (async () => {
             try {
