@@ -1,22 +1,26 @@
 import {useEffect, useState} from "react"
 import GraphRender, { fetchGraphData } from "./GraphRenderer"
-import PrefillUI from "./PrefillUI"
+import NodeInfo from "./PrefillUI"
 import "./css/App.css"
-
-const updateNodeValue = async (nodeId: string, fieldKey: string, value: any): Promise<void> => {
-    const response = await fetch(`http://localhost:3000/api/node-values/${nodeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [fieldKey]: value })
-    })
-    if (!response.ok) throw new Error('Failed to update node value')
-}
 
 const App = () => {
     const [graphData, setGraphData] = useState<any | undefined>(undefined)
     const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined)
-    const [isPrefillOpen, setIsPrefillOpen] = useState(false)
-    const [autoPrefill, setAutoPrefill] = useState(true)
+    const [isNodeInfoOpen, setIsNodeInfoOpen] = useState(false)
+    
+    // Global data that can be used for prefill mapping
+    const [globalData, setGlobalData] = useState<Record<string, any>>({
+        userId: 'user123',
+        timestamp: new Date().toISOString(),
+        sessionId: 'session456',
+        companyName: 'Avantos Corp',
+        environment: 'development',
+        apiVersion: 'v1.0',
+        userRole: 'admin',
+        region: 'us-east-1',
+        language: 'en',
+        timezone: 'UTC'
+    })
 
     useEffect(() => {
         (async () => {
@@ -29,32 +33,50 @@ const App = () => {
         })()
     }, [])
 
-    const handleUpdateNodeValue = async (nodeId: string, fieldKey: string, value: any) => {
-        try {
-            await updateNodeValue(nodeId, fieldKey, value)
-            const data = await fetchGraphData()
-            setGraphData(data)
-        } catch (error) {
-            console.error('Failed to update node value:', error)
-        }
-    }
-
     const handleSelectNode = (nodeId: string) => {
         setSelectedNodeId(nodeId)
-        setIsPrefillOpen(true)
+        setIsNodeInfoOpen(true)
+    }
+
+    const handleUpdateNodeField = (nodeId: string, fieldKey: string, value: any) => {
+        setGraphData((prevData: any) => {
+            if (!prevData) return prevData;
+            
+            return {
+                ...prevData,
+                nodes: prevData.nodes.map((node: any) => {
+                    if (node.id === nodeId) {
+                        return {
+                            ...node,
+                            data: {
+                                ...node.data,
+                                formFields: {
+                                    ...(node.data.formFields || {}),
+                                    [fieldKey]: value
+                                }
+                            }
+                        };
+                    }
+                    return node;
+                })
+            };
+        });
     }
 
     return (
         <div className="app-container">
-            <div className="app-controls">
-            </div>
-            <GraphRender graphData={graphData} onSelectNode={handleSelectNode} prefillFrom={autoPrefill ? 'predecessors' : 'none'} />
-            <PrefillUI
+            <GraphRender 
+                graphData={graphData} 
+                onSelectNode={handleSelectNode}
+                onUpdateNodeField={handleUpdateNodeField}
+            />
+            <NodeInfo
                 graphData={graphData}
                 selectedNodeId={selectedNodeId}
-                isOpen={isPrefillOpen}
-                onClose={() => setIsPrefillOpen(false)}
-                updateNodeValue={handleUpdateNodeValue}
+                isOpen={isNodeInfoOpen}
+                onClose={() => setIsNodeInfoOpen(false)}
+                onUpdateNodeField={handleUpdateNodeField}
+                globalData={globalData}
             />
         </div>
     )
