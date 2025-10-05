@@ -7,20 +7,3 @@
     border-radius: 8px;
 }
 
-.graph-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 600px;
-    color: #6b7280;
-    font-size: 16px;
-}
-
-.graph-error {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 600px;
-    color: #dc2626;
-    font-size: 16px;
-}
