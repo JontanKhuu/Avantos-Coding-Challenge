@@ -346,7 +346,7 @@ The application integrates with a REST API to:
 
 ### Required API Endpoint
 
-- `GET /api/v1/123/actions/blueprints/bp_456/bpv_123/graph` - Fetch complete graph data
+- `/api/v1/{tenant_id}/actions/blueprints/{action_blueprint_id}/{blueprint_version_id}/graph` - Fetch complete graph data
 
 ### Expected Data Format
 
@@ -418,15 +418,21 @@ Run tests with:
 npm test
 ```
 
-## Contributing
+## Additional Thoughts
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-This project is part of the Avantos coding challenge.
+- I initially spent a day or two getting more familiar with Typescript 
+and thinking about how I was going to approach the problem.
+- It may seem very obvious but a good amount of the project did use the help
+of LLMs, initially I wanted to do the project by myself without help, but as
+time went on I realized that while being able to do work is good, not being
+efficient with it is NOT good.
+- In the video I showcased my thinking process, I also had to record 3 separate
+times because I forgot to track the time and realized it was too short.
+- There were multiple takes for the video because I realize that my experience in
+Typescript isn't the most so my first take would've mostly been my reading documentation.
+I wanted to get to a point where I still had to look at documentation but could do the coding
+without clicking off the screen too much, so if it looked like I was coding very fast, it was
+because I had multiple tries of working on the same thing.
+- I was told that the project should really only take 5 hours but I took a lot more time on it.
+Maybe it is because I was overthinking on how much features I needed but I am really curious on
+what the actual solution is supposed to look like, an explanation would be appreciated. 
